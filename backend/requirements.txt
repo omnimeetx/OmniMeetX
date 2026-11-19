@@ -5,7 +5,7 @@
 
 # Web framework & real-time
 fastapi==0.129.0
-starlette==0.52.1
+starlette==1.10.0
 uvicorn[standard]==0.40.0
 python-socketio==5.11.2
 python-engineio==4.13.1
