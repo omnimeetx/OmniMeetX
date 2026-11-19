@@ -37,4 +37,4 @@ arabic-reshaper==3.0.0
 python-bidi==0.6.3
 
 # Error tracking
-sentry-sdk>=2.0.0,<3.0.0
+sentry-sdk>=2.75.0,<3.0.0
