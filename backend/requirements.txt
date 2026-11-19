@@ -23,7 +23,7 @@ Werkzeug==3.0.3              # password hashing + secure_filename
 
 # AI providers (LLM router + speech-to-text)
 google-generativeai==0.8.3
-assemblyai==0.33.0
+assemblyai==1.10.0
 requests==2.32.3
 
 # Media download (YouTube / Drive / etc.)
