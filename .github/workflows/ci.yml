@@ -1,0 +1,81 @@
+name: CI
+
+# Render deploys a push only after these checks pass (autoDeployTrigger: checksPass in render.yaml).
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend - tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'     # same as production (PYTHON_VERSION in render.yaml)
+          cache: 'pip'
+          cache-dependency-path: ./backend/requirements*.txt
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Verify the app imports
+        run: python -c "from app.main import app, socket_app; print('Backend loaded')"
+
+      # Throwaway database, no real services, no keys needed.
+      - name: Tests
+        run: pytest tests -q --ignore=tests/test_e2e.py
+
+      # Makes real AI calls: runs only when the GEMINI_API_KEY repository secret exists.
+      - name: End-to-end test (real AI)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        if: ${{ env.GEMINI_API_KEY != '' }}
+        run: pytest tests/test_e2e.py -q
+
+  frontend:
+    name: Frontend - type check and production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22           # same as production (package.json "engines")
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NEXT_PUBLIC_API_URL: https://api.example.com
+          NEXT_PUBLIC_SITE_URL: https://www.example.com
+          # Any well-formed publishable key works for a build; set the repository secret to use yours.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_Y2xlcmsuZXhhbXBsZS5jb20k' }}
+        run: npm run build

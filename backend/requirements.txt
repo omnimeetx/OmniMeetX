@@ -1,0 +1,40 @@
+# ---------------------------------------------------------------------------
+# OmniMeetX — backend runtime dependencies
+# Only packages the code actually imports. Dev/test tools: requirements-dev.txt
+# ---------------------------------------------------------------------------
+
+# Web framework & real-time
+fastapi==0.129.0
+starlette==0.52.1
+uvicorn[standard]==0.40.0
+python-socketio==5.11.2
+python-engineio==4.13.1
+python-multipart==0.0.22
+pydantic==2.12.5
+pydantic-settings==2.13.1
+
+# Database (SQLite for local dev, PostgreSQL in production)
+SQLAlchemy==2.0.46
+psycopg2-binary==2.9.10
+
+# Auth & security
+python-jose[cryptography]==3.5.0
+Werkzeug==3.0.3              # password hashing + secure_filename
+
+# AI providers (LLM router + speech-to-text)
+google-generativeai==0.8.3
+assemblyai==0.33.0
+requests==2.32.3
+
+# Media download (YouTube / Drive / etc.)
+yt-dlp==2026.10.26
+yt-dlp-ejs==0.8.0            # YouTube challenge solver; also needs deno or node on the machine
+
+# PDF / Word export (incl. RTL text for Urdu/Arabic)
+reportlab==4.2.5
+python-docx==1.1.2
+arabic-reshaper==3.0.0
+python-bidi==0.6.3
+
+# Error tracking
+sentry-sdk>=2.0.0,<3.0.0

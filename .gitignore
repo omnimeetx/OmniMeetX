@@ -1,0 +1,32 @@
+# Each app has its own .gitignore (backend/.gitignore, frontend/.gitignore).
+# These root rules are a safety net so secrets and local data never get committed.
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies & builds
+node_modules/
+.next/
+venv/
+.venv/
+__pycache__/
+
+# Local data & user files
+backend/data/
+backend/uploads/
+backend/recordings/
+backend/outputs/
+*.db
+
+# Archives
+*.zip
+*.rar
+*.7z
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

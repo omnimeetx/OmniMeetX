@@ -1,0 +1,129 @@
+# Render Blueprint for OmniMeetX: the API and the website, both in Singapore,
+# next to the Supabase database (ap-southeast-1) so every database call stays in one city.
+#
+# First deploy: Render dashboard -> New -> Blueprint -> pick this repo.
+# Render asks once for every `sync: false` value below. After that, change values
+# under each service's "Environment" tab (this file is not read again for them).
+# Step-by-step guide: README.md -> "Deploying".
+
+services:
+  # ---------------------------------------------------------------- API (FastAPI)
+  - type: web
+    name: omnimeetx-api
+    runtime: python
+    region: singapore
+    plan: 0.5c-512mb            # "Starter", $7/month. Move to 1c-2g if Metrics shows memory near 512 MB.
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    # One worker: live-room state is in memory. ffmpeg and node come with Render's runtime.
+    startCommand: "uvicorn app.main:socket_app --host 0.0.0.0 --port $PORT --workers 1 --lifespan on --proxy-headers --forwarded-allow-ips='*'"
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 300  # let meetings being processed finish during a deploy
+    autoDeployTrigger: checksPass # deploy a push only after GitHub CI passes
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: ENVIRONMENT
+        value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true       # random, made once by Render. Changing it signs everyone out.
+      # Website address (https://omnimeetx.com, or the onrender.com address before the domain).
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # This API's own address (https://api.omnimeetx.com, or its onrender.com address).
+      - key: BACKEND_PUBLIC_URL
+        sync: false
+      - key: APP_PUBLIC_URL
+        sync: false
+      # Supabase: the session pooler URL (port 5432), the project URL and the secret key.
+      - key: SQLALCHEMY_DATABASE_URI
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: recordings
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ASSEMBLYAI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      # Paddle: keep sandbox until the live account is approved, then switch all five together.
+      - key: PADDLE_SANDBOX
+        value: "true"
+      - key: PADDLE_API_KEY
+        sync: false
+      - key: PADDLE_WEBHOOK_SECRET
+        sync: false
+      - key: PADDLE_PRO_MONTHLY_PRICE_ID
+        sync: false
+      - key: PADDLE_PRO_YEARLY_PRICE_ID
+        sync: false
+      - key: PADDLE_PREMIUM_MONTHLY_PRICE_ID
+        sync: false
+      - key: PADDLE_PREMIUM_YEARLY_PRICE_ID
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: MEDIA_RETENTION_DAYS
+        value: "30"
+      - key: PROCESSING_WORKERS
+        value: "2"              # 512 MB: two meetings at a time. Raise with a bigger plan.
+
+  # ---------------------------------------------------------------- Website (Next.js)
+  - type: web
+    name: omnimeetx-web
+    runtime: node               # version from package.json "engines" (Node 22)
+    region: singapore
+    plan: 0.5c-512mb            # "Starter", $7/month. Free would sleep and take ~1 minute to wake.
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npx next start -p $PORT
+    healthCheckPath: /
+    autoDeployTrigger: checksPass
+    envVars:
+      # NEXT_PUBLIC_* values are built into the site: after changing one, redeploy.
+      - key: NEXT_PUBLIC_API_URL
+        sync: false             # https://api.omnimeetx.com, or the API's onrender.com address
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false             # https://omnimeetx.com, or this site's onrender.com address
+      - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_CLERK_SIGN_IN_URL
+        value: /login
+      - key: NEXT_PUBLIC_CLERK_SIGN_UP_URL
+        value: /signup
+      - key: NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
+        value: /dashboard
+      - key: NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
+        value: /dashboard
+      - key: NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL
+        value: /dashboard
+      - key: NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL
+        value: /dashboard
+      - key: NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_PADDLE_ENVIRONMENT
+        value: sandbox          # "production" once Paddle approves the live account
+      - key: SENTRY_AUTH_TOKEN
+        sync: false             # uploads source maps so Sentry shows real line numbers
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
